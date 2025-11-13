@@ -1,104 +1,87 @@
-
+// screens/MenuScreen.tsx
 import React, { useMemo } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import { DISHES, Dish } from "../data/dishes";
+import BottomNav from "../components/BottomNav";
+import { useCart } from "../context/CartContext";
 
 export default function MenuScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const selectedDishId = (route.params as any)?.selectedDishId as string | undefined;
+  const { addToCart, subtotal } = useCart();
 
-  const ordered = useMemo(() => {
-    if (!selectedDishId) return DISHES;
-    const sel = DISHES.find((d) => d.id === selectedDishId);
-    return sel ? [sel, ...DISHES.filter((d) => d.id !== selectedDishId)] : DISHES;
-  }, [selectedDishId]);
-
-  const avgPrice = useMemo(() => {
-    const total = DISHES.reduce((s, d) => s + d.price, 0);
-    return +(total / DISHES.length).toFixed(2);
+  const grouped = useMemo(() => {
+    const out: Record<string, Dish[]> = {};
+    for (const d of DISHES) {
+      if (!out[d.course]) out[d.course] = [];
+      out[d.course].push(d);
+    }
+    return out;
   }, []);
+
+  const avgPerCourse = useMemo(() => {
+    const map: Record<string, number> = {};
+    Object.keys(grouped).forEach((k) => {
+      const list = grouped[k];
+      const avg = list.reduce((s, d) => s + d.price, 0) / list.length;
+      map[k] = +avg.toFixed(2);
+    });
+    return map;
+  }, [grouped]);
 
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>A list of options prepared for you by chef Christoffel</Text>
+        <Text style={styles.title}>A list of options prepared for you by Chef Christoffel</Text>
+        <Text style={styles.sub}>Subtotal in cart: R {subtotal.toFixed(2)}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {ordered.map((dish) => {
-          const highlighted = selectedDishId === dish.id;
-          return (
-            <View key={dish.id} style={[styles.card, highlighted && styles.highlight]}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardTitle}>{dish.name}</Text>
-                <Text style={styles.price}>R {dish.price.toFixed(2)}</Text>
-              </View>
-              <Text style={styles.desc}>{dish.description}</Text>
-              <View style={styles.ingWrap}>
-                <Text style={styles.ingTitle}>Ingredients</Text>
-                <Text style={styles.ingText}>{dish.ingredients.join(", ")}</Text>
-              </View>
+      <FlatList
+        data={Object.keys(grouped)}
+        keyExtractor={(k) => k}
+        contentContainerStyle={{ padding: 12, paddingBottom: 90 }}
+        renderItem={({ item: course }) => (
+          <View style={{ marginBottom: 18 }}>
+            <View style={styles.courseHeader}>
+              <Text style={styles.courseTitle}>{course}</Text>
+              <Text style={styles.courseAvg}>Avg R {avgPerCourse[course]?.toFixed(2)}</Text>
+            </View>
 
-              <View style={styles.cardFooter}>
-                <TouchableOpacity style={styles.customBtn} onPress={() => navigation.navigate("Customize" as never, { baseDish: dish } as never)}>
-                  <Ionicons name="add" size={16} color="#fff" />
-                  <Text style={styles.customBtnText}>Customize</Text>
+            {grouped[course].map((d) => (
+              <View key={d.id} style={styles.card}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>{d.name}</Text>
+                  <Text style={styles.cardDesc}>{d.description}</Text>
+                  <Text style={styles.cardPrice}>R {d.price.toFixed(2)}</Text>
+                </View>
+
+                <TouchableOpacity style={styles.addBtn} onPress={() => addToCart(d)}>
+                  <Text style={styles.addText}>Add</Text>
                 </TouchableOpacity>
               </View>
-            </View>
-          );
-        })}
-      </ScrollView>
+            ))}
+          </View>
+        )}
+      />
 
-      <View style={styles.avgWrap}>
-        <Text style={styles.avg}>Average meal price: <Text style={styles.avgVal}>R {avgPrice.toFixed(2)}</Text></Text>
-      </View>
-
-      <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => navigation.navigate("Home")}>
-          <Ionicons name="home" size={24} color="#666" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Menu")}>
-          <Ionicons name="list" size={24} color="#1B5E20" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Customize")}>
-          <Ionicons name="add-circle" size={28} color="#D4AF37" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-          <Ionicons name="log-out" size={22} color="#666" />
-        </TouchableOpacity>
-      </View>
+      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f5f6f8" },
-  header: { padding: 16, backgroundColor: "#fff", borderBottomWidth: 1, borderColor: "#eee" },
-  headerTitle: { fontSize: 15, fontWeight: "600", color: "#333" },
+  root: { flex: 1, backgroundColor: "#f7f7f7" },
+  header: { padding: 12 },
+  title: { fontSize: 16, fontWeight: "700", color: "#1B5E20" },
+  sub: { color: "#666", marginTop: 4 },
 
-  scroll: { padding: 16, paddingBottom: 140 },
-  card: { backgroundColor: "#fff", borderRadius: 12, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: "#eee" },
-  highlight: { borderColor: "#cfe8ff", backgroundColor: "#f5fbff" },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
-  cardTitle: { fontSize: 18, fontWeight: "700" },
-  price: { color: "#1B5E20", fontWeight: "700" },
-  desc: { color: "#4a4a4a", marginBottom: 8, lineHeight: 20 },
+  courseHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 },
+  courseTitle: { fontSize: 16, fontWeight: "700" },
+  courseAvg: { color: "#1B5E20", fontWeight: "700" },
 
-  ingWrap: { borderTopWidth: 1, borderTopColor: "#f0f0f0", paddingTop: 8 },
-  ingTitle: { fontSize: 13, fontWeight: "700", marginBottom: 6 },
-  ingText: { color: "#555" },
+  card: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 12, borderRadius: 12, marginTop: 10, borderWidth: StyleSheet.hairlineWidth, borderColor: "#eee" },
+  cardTitle: { fontWeight: "700" },
+  cardDesc: { color: "#666", marginTop: 6 },
+  cardPrice: { marginTop: 8, fontWeight: "700", color: "#333" },
 
-  cardFooter: { marginTop: 10, alignItems: "flex-end" },
-  customBtn: { backgroundColor: "#1B5E20", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, flexDirection: "row", alignItems: "center" },
-  customBtnText: { color: "#fff", marginLeft: 8, fontWeight: "700" },
-
-  avgWrap: { padding: 12, backgroundColor: "#fff", borderTopWidth: 1, borderColor: "#eee", alignItems: "center" },
-  avg: { color: "#666" },
-  avgVal: { color: "#1B5E20", fontWeight: "700" },
-
-  bottomNav: { position: "absolute", left: 0, right: 0, bottom: 0, paddingVertical: 10, flexDirection: "row", justifyContent: "space-around", backgroundColor: "#fff", borderTopWidth: 1, borderColor: "#eee" },
+  addBtn: { backgroundColor: "#1B5E20", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10 },
+  addText: { color: "#fff", fontWeight: "700" },
 });

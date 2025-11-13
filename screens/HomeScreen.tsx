@@ -1,163 +1,162 @@
+// screens/HomeScreen.tsx
 import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
-  TextInput,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { DISHES, Dish, Course } from "../data/dishes";
 import { Ionicons } from "@expo/vector-icons";
-import { DISHES, Dish } from "../data/dishes";
+import BottomNav from "../components/BottomNav";
+import { useCart } from "../context/CartContext";
 
-const COURSES = ["All", "Starter", "Main", "Dessert", "Drink", "Special"] as const;
+const FILTERS: (Course | "All")[] = ["All", "Starter", "Main", "Dessert", "Drink", "Special"];
 
-export default function HomeScreen() {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const user = (route.params as any)?.user ?? "Guest";
+export default function HomeScreen({ route }: { route?: any }) {
+  const passedUser = route?.params?.user ?? "Guest";
+  const { addToCart, subtotal } = useCart();
 
-  const [filter, setFilter] = useState<typeof COURSES[number]>("All");
-  const [searchText, setSearchText] = useState("");
+  const [filter, setFilter] = useState<Course | "All">("All");
 
-  // Filtered dishes based on search text and course filter
   const filtered = useMemo(() => {
-    return DISHES.filter((d) => {
-      if (filter !== "All" && d.course !== filter) return false;
-      if (searchText.trim() !== "" && !d.name.toLowerCase().includes(searchText.toLowerCase())) return false;
-      return true;
-    });
-  }, [filter, searchText]);
+    if (filter === "All") return DISHES;
+    return DISHES.filter((d) => d.course === filter);
+  }, [filter]);
 
-  // Average price per course
-  const avgPricePerCourse = useMemo(() => {
-    const courses = COURSES.filter(c => c !== "All");
-    const result: { [key: string]: number } = {};
+  const averagePrice = useMemo(() => {
+    if (filtered.length === 0) return 0;
+    const sum = filtered.reduce((s, d) => s + d.price, 0);
+    return +(sum / filtered.length).toFixed(2);
+  }, [filtered]);
 
-    courses.forEach(course => {
-      const courseDishes = DISHES.filter(d => d.course === course);
-      if (courseDishes.length > 0) {
-        const total = courseDishes.reduce((sum, d) => sum + d.price, 0);
-        result[course] = +(total / courseDishes.length).toFixed(2);
-      } else {
-        result[course] = 0;
-      }
-    });
-
-    return result;
+  const grouped = useMemo(() => {
+    const groups: Record<string, Dish[]> = {};
+    for (const d of DISHES) {
+      if (!groups[d.course]) groups[d.course] = [];
+      groups[d.course].push(d);
+    }
+    return groups;
   }, []);
-
-  const renderItem = ({ item }: { item: Dish }) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => navigation.navigate("Menu", { selectedDishId: item.id })}
-    >
-      <View>
-        <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardCourse}>{item.course}</Text>
-      </View>
-      <View style={{ alignItems: "flex-end" }}>
-        <Text style={styles.price}>R {item.price.toFixed(2)}</Text>
-        <Ionicons name="chevron-forward" size={18} color="#666" />
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
     <SafeAreaView style={styles.root}>
-      <View style={styles.header}>
-        <Text style={styles.welcome}>Welcome, {user}!</Text>
-        <Text style={styles.sub}>This is the Home Screen of your Royal Menu App</Text>
-      </View>
-
-      <View style={styles.controls}>
-        <View style={styles.pills}>
-          {COURSES.map((c) => (
-            <TouchableOpacity
-              key={c}
-              style={[styles.pill, filter === c && styles.pillActive]}
-              onPress={() => setFilter(c)}
-            >
-              <Text style={[styles.pillText, filter === c && styles.pillTextActive]}>{c}</Text>
-            </TouchableOpacity>
-          ))}
+      <ScrollView contentContainerStyle={{ paddingBottom: 90 }}>
+        <View style={styles.header}>
+          <Text style={styles.welcome}>Welcome, {passedUser}!</Text>
+          <Text style={styles.subtitle}>This is the Home Screen of your Royal Menu App.</Text>
         </View>
 
-        <View style={styles.searchRow}>
-          <Ionicons name="search" size={18} color="#666" />
-          <TextInput
-            placeholder="Search dishes..."
-            style={styles.searchInput}
-            value={searchText}
-            onChangeText={setSearchText}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recommended Dishes</Text>
+          <View style={styles.filterRow}>
+            {FILTERS.map((f) => {
+              const active = f === filter;
+              return (
+                <TouchableOpacity
+                  key={String(f)}
+                  style={[styles.filterBtn, active && styles.filterActive]}
+                  onPress={() => setFilter(f)}
+                >
+                  <Text style={[styles.filterText, active && styles.filterTextActive]}>{f}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.avgRow}>
+            <Text style={styles.avgLabel}>Average price: </Text>
+            <Text style={styles.avgValue}>R {averagePrice.toFixed(2)}</Text>
+            <View style={{ flex: 1 }} />
+            <Ionicons name="cart" size={18} color="#1B5E20" />
+            <Text style={{ marginLeft: 6, color: "#1B5E20", fontWeight: "700" }}>R {subtotal.toFixed(2)}</Text>
+          </View>
+
+          <FlatList
+            data={filtered}
+            horizontal
+            keyExtractor={(i) => i.id}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingVertical: 8, paddingHorizontal: 12 }}
+            renderItem={({ item }) => (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>{item.name}</Text>
+                <Text style={styles.cardCourse}>{item.course}</Text>
+                <Text numberOfLines={2} style={styles.cardDesc}>{item.description}</Text>
+                <Text style={styles.price}>R {item.price.toFixed(2)}</Text>
+                <TouchableOpacity style={styles.addBtn} onPress={() => addToCart(item)}>
+                  <Ionicons name="cart" size={16} color="#fff" />
+                  <Text style={styles.addText}> Add</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           />
         </View>
-      </View>
 
-      <View style={styles.listWrap}>
-        <FlatList
-          data={filtered || []} // fallback to empty array
-          keyExtractor={(i) => i.id.toString()} // convert number id to string
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-          contentContainerStyle={{ paddingBottom: 140 }}
-        />
-      </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>All Categories</Text>
+          {Object.keys(grouped).map((course) => (
+            <View key={course} style={{ marginTop: 12 }}>
+              <View style={styles.groupHeader}>
+                <Text style={styles.groupTitle}>{course}</Text>
+                <Text style={styles.groupCount}>{grouped[course].length} items</Text>
+              </View>
+              <View>
+                {grouped[course].slice(0, 3).map((d) => (
+                  <View key={d.id} style={styles.listRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.listName}>{d.name}</Text>
+                      <Text style={styles.listPrice}>R {d.price.toFixed(2)}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.smallAdd} onPress={() => addToCart(d)}>
+                      <Ionicons name="add" size={18} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
 
-      <View style={styles.footer}>
-        <Text style={styles.avg}>Average prices per course:</Text>
-        {Object.entries(avgPricePerCourse).map(([course, price]) => (
-          <Text key={course} style={styles.avgVal}>
-            {course}: R {price.toFixed(2)}
-          </Text>
-        ))}
-      </View>
-
-      <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => navigation.navigate("Home")}>
-          <Ionicons name="home" size={24} color="#1B5E20" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Menu")}>
-          <Ionicons name="list" size={24} color="#666" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Customize")}>
-          <Ionicons name="add-circle" size={28} color="#D4AF37" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-          <Ionicons name="log-out" size={22} color="#666" />
-        </TouchableOpacity>
-      </View>
+      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#f5f6f8" },
-  header: { padding: 16, backgroundColor: "#fff", borderBottomWidth: 1, borderColor: "#eee" },
-  welcome: { fontSize: 20, fontWeight: "700", color: "#1B5E20" },
-  sub: { marginTop: 6, color: "#666" },
+  root: { flex: 1, backgroundColor: "#f7f7f7" },
+  header: { padding: 16 },
+  welcome: { fontSize: 22, fontWeight: "800", color: "#1B5E20" },
+  subtitle: { fontSize: 14, color: "#333", marginTop: 6 },
+  section: { paddingHorizontal: 12, marginTop: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#333" },
+  filterRow: { flexDirection: "row", marginTop: 10, gap: 8 },
+  filterBtn: { paddingHorizontal: 12, paddingVertical: 8, backgroundColor: "#fff", borderRadius: 20, borderWidth: 1, borderColor: "#ececec", marginRight: 8 },
+  filterActive: { backgroundColor: "#1B5E20", borderColor: "#1B5E20" },
+  filterText: { color: "#333", fontWeight: "600" },
+  filterTextActive: { color: "#fff" },
+  avgRow: { flexDirection: "row", alignItems: "center", marginTop: 12 },
+  avgLabel: { color: "#666" },
+  avgValue: { fontWeight: "700", marginLeft: 6, color: "#1B5E20" },
 
-  controls: { padding: 12 },
-  pills: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
-  pill: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 20, backgroundColor: "#fff", borderWidth: 1, borderColor: "#eee", marginRight: 8, marginBottom: 8 },
-  pillActive: { backgroundColor: "#1B5E20", borderColor: "#1B5E20" },
-  pillText: { color: "#444", fontWeight: "600" },
-  pillTextActive: { color: "#fff" },
+  card: { width: 220, backgroundColor: "#fff", borderRadius: 12, padding: 12, marginRight: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: "#eaeaea" },
+  cardTitle: { fontWeight: "700", fontSize: 16 },
+  cardCourse: { fontSize: 12, color: "#1B5E20", marginTop: 6 },
+  cardDesc: { fontSize: 13, color: "#666", marginTop: 8 },
+  price: { marginTop: 10, fontWeight: "700", color: "#333" },
+  addBtn: { marginTop: 10, backgroundColor: "#1B5E20", paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, flexDirection: "row", alignItems: "center", alignSelf: "flex-start" },
+  addText: { color: "#fff", fontWeight: "700" },
 
-  searchRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 8, borderRadius: 8, borderWidth: 1, borderColor: "#eee" },
-  searchInput: { marginLeft: 8, flex: 1 },
+  groupHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  groupTitle: { fontSize: 16, fontWeight: "700", color: "#333" },
+  groupCount: { color: "#777" },
 
-  listWrap: { flex: 1, padding: 16 },
-  card: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#fff", padding: 14, borderRadius: 10, borderWidth: 1, borderColor: "#eee" },
-  cardTitle: { fontSize: 16, fontWeight: "700" },
-  cardCourse: { color: "#2e7d32", marginTop: 4, fontSize: 12 },
-  price: { color: "#1B5E20", fontWeight: "700" },
-
-  footer: { padding: 12, backgroundColor: "#fff", borderTopWidth: 1, borderColor: "#eee", alignItems: "center" },
-  avg: { color: "#666", fontWeight: "600" },
-  avgVal: { color: "#1B5E20", fontWeight: "700" },
-
-  bottomNav: { position: "absolute", left: 0, right: 0, bottom: 0, paddingVertical: 10, flexDirection: "row", justifyContent: "space-around", backgroundColor: "#fff", borderTopWidth: 1, borderColor: "#eee" },
+  listRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#fff", padding: 10, borderRadius: 8, marginTop: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: "#eee" },
+  listName: { fontWeight: "600" },
+  listPrice: { color: "#666" },
+  smallAdd: { backgroundColor: "#1B5E20", padding: 8, borderRadius: 8 },
 });

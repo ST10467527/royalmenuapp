@@ -1,40 +1,57 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+// ./screens/LoginScreen.tsx
 
-export default function LoginScreen() {
-  const [username, setUsername] = useState("");
-  const navigation = useNavigation();
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
+
+const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  const [username, setUsername] = useState<string>('');
 
   const handleLogin = () => {
-    if (username.trim() === "") {
-      alert("Please enter your name");
-      return;
+    if (username.trim() !== '') {
+      navigation.navigate('Home'); // Navigate to HomeScreen
+    } else {
+      Alert.alert('Login Failed', 'Please enter a username');
     }
-    // Navigate to HomeScreen and pass username
-    navigation.navigate("Home", { user: username });
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Royal Menu App</Text>
+      <Text style={styles.title}>Login</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter your name"
+        placeholder="Username"
         value={username}
         onChangeText={setUsername}
       />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
-      </TouchableOpacity>
+      <Button title="Login" onPress={handleLogin} />
     </View>
   );
-}
+};
+
+export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: "center", alignItems: "center", padding: 20 },
-  title: { fontSize: 32, fontWeight: "bold", marginBottom: 20 },
-  input: { width: "80%", borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 10, marginBottom: 20 },
-  button: { backgroundColor: "#d4af37", padding: 15, borderRadius: 8 },
-  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 15,
+  },
 });
