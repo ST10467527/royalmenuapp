@@ -1,56 +1,44 @@
-Royal Menu App – Features and Enhancements
+Royal Menu App
+Features
 
-I developed the Royal Menu App to provide users with a seamless and intuitive experience for browsing and interacting with a restaurant menu. The key features and improvements are as follows:
+Home Screen
+- Displays a welcome message using the user’s name if logged in, or defaults to “Guest.”
+- Brief introduction guiding users on the app’s functionality.
 
-Home Screen Personalisation
+Menu & Course Filtering
+- Dishes categorised into Starters, Mains, Desserts, Drinks, and Specials.
+- Users can filter dishes by tapping the corresponding course pill.
+- Each course displays the average price of dishes.
 
-Displays a welcome message using the user’s name if logged in, or defaults to “Guest.”
+Search Functionality
+- Real-time search to find dishes by name quickly.
 
-Includes a short introduction to guide users on the app’s functionality.
+Dish Cards
+- Each dish displays name, course, description, and price.
+- Add button allows quick addition to cart.
+- Optimised with `FlatList` to prevent runtime errors.
 
-Course Filtering System
+Customise Screen
+- Select a template dish and toggle ingredients on/off.
+- Add custom names and notes for special instructions.
+- Estimated price updates dynamically.
+- Add custom dishes to the cart with options intact.
 
-Dishes are categorised into Starters, Mains, Desserts, Drinks, and Specials.
+Cart Screen
+- Shows selected items with quantity, notes, and price.
+- Displays subtotal, tax, and total dynamically.
+- Remove individual items or clear the entire cart.
 
-Users can filter dishes by tapping the corresponding course pill for quick navigation.
+Bottom Navigation
+- Access Home, Menu, Customise, and Login/Logout screens easily.
+- Uses vector icons for a modern interface.
 
-Dynamic Search Functionality
+Improvements & Fixes
+- Fixed runtime errors related to undefined prices and subtotal calculations.
+- Corrected JSX syntax and useMemo dependencies for smooth performance.
+- Simplified navigation for reliable screen transitions.
+- Fully integrated filtering, search, average price display, customisation, and cart functionality.
 
-Users can search for dishes by name using the search bar.
-
-Search results update in real-time, improving accessibility and efficiency.
-
-Average Price Calculation per Course
-
-Calculates the average price of all dishes within each course.
-
-Displays average prices in the footer, providing users with insight into pricing trends.
-
-Dish Card Layout
-
-Each dish displays its name, course, and price on a card.
-
-Cards include an arrow icon to indicate further details or customisation options.
-
-FlatList Optimisation
-
-Converts dish IDs to strings in the keyExtractor to prevent runtime errors.
-
-Ensures smooth loading and prevents the app from freezing.
-
-Bottom Navigation Bar
-
-Provides quick access to the Home screen, full Menu, Customise screen, and Login/logout.
-
-Enhances navigation and overall user experience.
-
-Runtime and UX Improvements
-
-Corrected JSX syntax and useMemo dependencies to prevent crashes.
-
-Simplified navigation calls for smooth screen transitions.
-
-Integrated filtering, search, and average price display for an efficient and user-friendly interface.
 link to youtube video 
 https://youtu.be/Hxpj4I4HIVg
 link to repository 
